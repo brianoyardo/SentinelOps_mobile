@@ -5,6 +5,7 @@ export const COLLECTIONS = {
   LOCATIONS: 'locations',
   ROUTES: 'routes',
   CHECKPOINTS: 'checkpoints',
+  GEOFENCES: 'geofences',
   RONDAS: 'rondas',
   RONDA_ASSIGNMENTS: 'rondaAssignments',
   RONDA_EXECUTIONS: 'rondaExecutions',
@@ -22,3 +23,23 @@ export const SPATIAL_COLLECTIONS = {
   GEOFENCES: 'geofences',
   CHECKPOINTS: 'checkpoints',
 } as const;
+
+export const PATROL_TYPES = {
+  A_PIE: 'A_PIE',
+  MOTORIZADO: 'MOTORIZADO',
+} as const;
+
+export const SHIFT_TYPES = {
+  DIURNO: 'DIURNO',
+  NOCTURNO: 'NOCTURNO',
+  PRIMER_TURNO: 'PRIMER_TURNO',
+  SEGUNDO_TURNO: 'SEGUNDO_TURNO',
+} as const;
+
+export const VOICE_PASSPHRASES = [
+  'Yo confirmo mi identidad biométrica para el sistema SentinelOps',
+  'La seguridad del perímetro norte está bajo mi responsabilidad',
+  'Autorizo el registro de mi voz para el sistema de vigilancia',
+] as const;
+
+export const POSITION_SYNC_INTERVAL = 5000;

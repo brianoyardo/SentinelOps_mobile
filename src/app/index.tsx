@@ -19,7 +19,7 @@ export default function Index() {
     return <Redirect href="/(auth)/login" />;
   }
 
-  return <Redirect href="/(main)/dashboard" />;
+  return <Redirect href="/(main)/mis-rondas" />;
 }
 
 const styles = StyleSheet.create({

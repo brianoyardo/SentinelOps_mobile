@@ -50,7 +50,8 @@
         {
           "photosPermission": "Permitir acceso a la galería para adjuntar evidencias."
         }
-      ]
+      ],
+      "expo-audio"
     ],
     "experiments": {
       "typedRoutes": true,

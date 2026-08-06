@@ -3,20 +3,23 @@ import * as Location from 'expo-location';
 import type { GeoPoint } from '@/types';
 
 interface GeolocationState {
-  location: GeoPoint | null;
+  position: GeoPoint | null;
+  accuracy: number | null;
   error: string | null;
   isTracking: boolean;
 }
 
-export function useGeolocation(shouldTrack = false) {
+export function useGeolocation(enableWatch = false) {
   const [state, setState] = useState<GeolocationState>({
-    location: null,
+    position: null,
+    accuracy: null,
     error: null,
     isTracking: false,
   });
   const subscriptionRef = useRef<Location.LocationSubscription | null>(null);
+  const [manualTracking, setManualTracking] = useState(false);
 
-  const requestPermission = useCallback(async () => {
+  const requestPermission = useCallback(async (): Promise<boolean> => {
     const { status } = await Location.requestForegroundPermissionsAsync();
     if (status !== 'granted') {
       setState((prev) => ({ ...prev, error: 'Permiso de ubicación denegado' }));
@@ -25,65 +28,80 @@ export function useGeolocation(shouldTrack = false) {
     return true;
   }, []);
 
-  useEffect(() => {
-    if (!shouldTrack) {
-      if (subscriptionRef.current) {
-        subscriptionRef.current.remove();
-        subscriptionRef.current = null;
-      }
-      setState((prev) => ({ ...prev, isTracking: false }));
-      return;
+  const stopTracking = useCallback(() => {
+    if (subscriptionRef.current) {
+      subscriptionRef.current.remove();
+      subscriptionRef.current = null;
+    }
+    setManualTracking(false);
+    setState((prev) => ({ ...prev, isTracking: false }));
+  }, []);
+
+  const startTracking = useCallback(async () => {
+    const permitted = await requestPermission();
+    if (!permitted) return;
+
+    setManualTracking(true);
+
+    const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
+    setState({
+      position: { lat: loc.coords.latitude, lng: loc.coords.longitude },
+      accuracy: loc.coords.accuracy,
+      error: null,
+      isTracking: true,
+    });
+
+    if (subscriptionRef.current) {
+      subscriptionRef.current.remove();
     }
 
-    let cancelled = false;
-
-    async function start() {
-      const permitted = await requestPermission();
-      if (!permitted || cancelled) return;
-
-      const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
-      if (!cancelled) {
+    const sub = await Location.watchPositionAsync(
+      {
+        accuracy: Location.Accuracy.High,
+        distanceInterval: 10,
+        timeInterval: 5000,
+      },
+      (newLoc) => {
         setState({
-          location: { lat: loc.coords.latitude, lng: loc.coords.longitude },
+          position: { lat: newLoc.coords.latitude, lng: newLoc.coords.longitude },
+          accuracy: newLoc.coords.accuracy,
           error: null,
           isTracking: true,
         });
-      }
+      },
+    );
+    subscriptionRef.current = sub;
+  }, [requestPermission]);
 
-      const sub = await Location.watchPositionAsync(
-        {
-          accuracy: Location.Accuracy.High,
-          distanceInterval: 10,
-          timeInterval: 5000,
-        },
-        (newLoc) => {
-          if (!cancelled) {
-            setState({
-              location: { lat: newLoc.coords.latitude, lng: newLoc.coords.longitude },
-              error: null,
-              isTracking: true,
-            });
-          }
-        },
-      );
+  const getCurrentPosition = useCallback(async (): Promise<GeoPoint> => {
+    const permitted = await requestPermission();
+    if (!permitted) throw new Error('GPS requerido');
 
-      if (!cancelled) {
-        subscriptionRef.current = sub;
-      } else {
-        sub.remove();
-      }
+    const loc = await Location.getCurrentPositionAsync({
+      accuracy: Location.Accuracy.High,
+    });
+    return { lat: loc.coords.latitude, lng: loc.coords.longitude };
+  }, [requestPermission]);
+
+  useEffect(() => {
+    if (!enableWatch) return;
+    startTracking();
+    return () => stopTracking();
+  }, [enableWatch, startTracking, stopTracking]);
+
+  const shouldTrack = enableWatch || manualTracking;
+
+  useEffect(() => {
+    if (!shouldTrack) {
+      stopTracking();
     }
+  }, [shouldTrack, stopTracking]);
 
-    start();
-
-    return () => {
-      cancelled = true;
-      if (subscriptionRef.current) {
-        subscriptionRef.current.remove();
-        subscriptionRef.current = null;
-      }
-    };
-  }, [shouldTrack, requestPermission]);
-
-  return state;
+  return {
+    ...state,
+    startTracking,
+    stopTracking,
+    getCurrentPosition,
+    isTracking: state.isTracking,
+  };
 }

@@ -5,6 +5,8 @@ import {
   Pressable,
   Animated,
   Modal as RNModal,
+  KeyboardAvoidingView,
+  Platform,
   type ViewStyle,
 } from 'react-native';
 import { colors, spacing } from '@/constants/colors';
@@ -49,23 +51,36 @@ export function Modal({ visible, onClose, children, containerStyle }: ModalProps
       onRequestClose={onClose}
       statusBarTranslucent
     >
-      <Animated.View style={[styles.overlay, { opacity: opacityAnim }]}>
-        <Pressable style={styles.overlayPress} onPress={onClose} />
-      </Animated.View>
-      <Animated.View
-        style={[
-          styles.modalContainer,
-          containerStyle,
-          { opacity: opacityAnim, transform: [{ scale: scaleAnim }] },
-        ]}
+      <KeyboardAvoidingView
+        style={styles.root}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        pointerEvents="box-none"
       >
-        {children}
-      </Animated.View>
+        <Animated.View style={[styles.overlay, { opacity: opacityAnim }]}>
+          <Pressable style={styles.overlayPress} onPress={onClose} />
+        </Animated.View>
+        <Animated.View
+          style={[
+            styles.content,
+            containerStyle,
+            { opacity: opacityAnim, transform: [{ scale: scaleAnim }] },
+          ]}
+        >
+          {children}
+        </Animated.View>
+      </KeyboardAvoidingView>
     </RNModal>
   );
 }
 
 const styles = StyleSheet.create({
+  root: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.xl,
+  },
   overlay: {
     position: 'absolute',
     top: 0,
@@ -77,12 +92,9 @@ const styles = StyleSheet.create({
   overlayPress: {
     flex: 1,
   },
-  modalContainer: {
-    position: 'absolute',
-    top: '50%',
-    left: spacing.xl,
-    right: spacing.xl,
-    transform: [{ translateY: -999 }],
+  content: {
+    width: '100%',
+    maxWidth: 480,
     backgroundColor: colors.dark.card,
     borderWidth: 1,
     borderColor: colors.dark.border,

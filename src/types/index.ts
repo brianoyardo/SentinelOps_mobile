@@ -16,6 +16,7 @@ export interface User {
   deviceToken: string | null;
   voiceProfileId: string | null;
   biometricEnrolled: boolean;
+  voiceEnrolled?: boolean;
   voicePassphrase: string | null;
   shiftStart: string | null;
   shiftEnd: string | null;
@@ -45,6 +46,7 @@ export type RondaAssignmentStatus =
   | 'pending'
   | 'available'
   | 'in_progress'
+  | 'paused'
   | 'completed'
   | 'late'
   | 'missed'

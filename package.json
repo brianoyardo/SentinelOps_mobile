@@ -7,7 +7,7 @@
     "@react-native-async-storage/async-storage": "^2.2.0",
     "appwrite": "^16.1.0",
     "expo": "~56.0.18",
-    "expo-av": "~15.0.0",
+    "expo-audio": "~56.0.13",
     "expo-camera": "~56.0.8",
     "expo-constants": "~56.0.22",
     "expo-device": "~56.0.4",
