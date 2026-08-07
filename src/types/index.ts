@@ -141,7 +141,7 @@ export interface RondaExecution {
 export interface RondaEvent {
   type: string;
   timestamp: number;
-  position?: GeoPoint;
+  position?: GeoPoint | null;
   details?: Record<string, unknown>;
 }
 

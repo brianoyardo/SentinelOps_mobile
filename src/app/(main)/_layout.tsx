@@ -139,7 +139,7 @@ export default function GuardLayout() {
       <View style={styles.bottomNav}>
         <TouchableOpacity
           style={[styles.navItem, pathname === '/(main)/mis-rondas' && styles.navItemActive]}
-          onPress={() => router.push('/(main)/mis-rondas')}
+          onPress={() => router.replace('/(main)/mis-rondas')}
         >
           <Text style={styles.navIcon}>↻</Text>
           <Text style={styles.navLabel}>Mis Rondas</Text>
@@ -157,7 +157,7 @@ export default function GuardLayout() {
 
         <TouchableOpacity
           style={[styles.navItem, pathname === '/(main)/report-incident' && styles.navItemActive]}
-          onPress={() => router.push('/(main)/report-incident')}
+          onPress={() => router.replace('/(main)/report-incident')}
         >
           <Text style={styles.navIcon}>⚠</Text>
           <Text style={styles.navLabel}>Reportar</Text>

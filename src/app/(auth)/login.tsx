@@ -86,7 +86,7 @@ export default function LoginScreen() {
 
     try {
       await loginUser(email.trim(), password);
-      router.replace('/(main)/dashboard');
+      router.replace('/(main)/mis-rondas');
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Error de autenticación';
       setError(message);

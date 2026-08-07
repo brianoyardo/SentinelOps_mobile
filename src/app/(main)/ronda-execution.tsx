@@ -19,6 +19,7 @@ import { VOICE_PASSPHRASES } from '@/config/constants';
 import { PreOpModal } from '@/components/rondas/PreOpModal';
 import { VoiceValidationModal } from '@/components/rondas/VoiceValidationModal';
 import { NotesModal } from '@/components/rondas/NotesModal';
+import { GuardMap } from '@/components/maps/GuardMap';
 import { EndRoundReportModal } from '@/components/rondas/EndRoundReportModal';
 import { colors, spacing, radii, fontSizes } from '@/constants/colors';
 import type { RondaAssignment } from '@/types';
@@ -239,12 +240,13 @@ export default function RondaExecutionScreen() {
     exec.finishRonda();
   };
 
-  // ─── Redirect a Mis Rondas al completar ───
+  // ─── Redirect a Mis Rondas al completar o cancelar ───
   useEffect(() => {
-    if (exec.status === RONDA_STATES.COMPLETED) {
+    if (exec.status === RONDA_STATES.COMPLETED || exec.status === RONDA_STATES.CANCELLED) {
+      const delay = exec.status === RONDA_STATES.CANCELLED ? 600 : 2000;
       const timer = setTimeout(() => {
         router.replace('/(main)/mis-rondas');
-      }, 2000);
+      }, delay);
       return () => clearTimeout(timer);
     }
   }, [exec.status, router]);
@@ -370,29 +372,20 @@ export default function RondaExecutionScreen() {
         </View>
       </View>
 
-      <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
-        {/* ─── GPS Panel (placeholder del mapa) ─── */}
-        <View style={styles.mapPanel}>
-          <View style={styles.mapHeader}>
-            <Text style={styles.mapTitle}>Posición del Guardia</Text>
-            <Text style={styles.mapBadge}>LIVE</Text>
-          </View>
-          <View style={styles.mapBody}>
-            <View style={styles.mapRadar}>
-              <View style={styles.mapRadarRing} />
-              <View style={[styles.mapRadarDot, exec.position && styles.mapRadarDotActive]} />
-            </View>
-            <View style={styles.mapCoords}>
-              <Text style={styles.mapCoordsText}>
-                {exec.position
-                  ? `${exec.position.lat.toFixed(5)}, ${exec.position.lng.toFixed(5)}`
-                  : 'Esperando GPS...'}
-              </Text>
-              <Text style={styles.mapTrailText}>Rastro: {exec.trail.length} puntos</Text>
-            </View>
-          </View>
-        </View>
+      <View
+        style={styles.mapContainer}
+        pointerEvents="box-none"
+      >
+        <GuardMap
+          position={exec.position}
+          checkpoints={checkpoints}
+          completedIds={exec.validation.completedIds}
+          activeCpId={exec.nextCheckpoint?.id ?? null}
+          trail={exec.trail}
+        />
+      </View>
 
+      <ScrollView style={styles.panel} contentContainerStyle={styles.panelContent}>
         {/* Next checkpoint */}
         {exec.nextCheckpoint && exec.isActive && (
           <View style={styles.nextCp}>
@@ -619,86 +612,19 @@ const styles = StyleSheet.create({
   scroll: {
     flex: 1,
   },
-  content: {
+  mapContainer: {
+    flex: 1,
+    overflow: 'hidden',
+    backgroundColor: colors.dark.bg,
+  },
+  panel: {
+    maxHeight: '45%',
+    backgroundColor: colors.dark.bg,
+  },
+  panelContent: {
     padding: spacing.lg,
     gap: spacing.lg,
     paddingBottom: spacing['4xl'],
-  },
-  mapPanel: {
-    backgroundColor: colors.dark.card,
-    borderRadius: radii.xl,
-    borderWidth: 1,
-    borderColor: colors.dark.border,
-    overflow: 'hidden',
-  },
-  mapHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: spacing.lg,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.dark.border,
-  },
-  mapTitle: {
-    fontSize: fontSizes.sm,
-    fontWeight: '600',
-    color: colors.dark.text,
-  },
-  mapBadge: {
-    fontSize: fontSizes.xs,
-    fontWeight: '800',
-    color: colors.accent[400],
-    letterSpacing: 1,
-  },
-  mapBody: {
-    padding: spacing.xl,
-    alignItems: 'center',
-    gap: spacing.lg,
-  },
-  mapRadar: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: colors.dark.surface,
-    borderWidth: 1,
-    borderColor: colors.dark.border,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  mapRadarRing: {
-    position: 'absolute',
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    borderWidth: 1,
-    borderColor: colors.primary[500] + '40',
-  },
-  mapRadarDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: colors.dark.textMuted,
-  },
-  mapRadarDotActive: {
-    backgroundColor: colors.primary[500],
-    shadowColor: colors.primary[500],
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.9,
-    shadowRadius: 10,
-    elevation: 6,
-  },
-  mapCoords: {
-    alignItems: 'center',
-    gap: spacing.xs,
-  },
-  mapCoordsText: {
-    fontSize: fontSizes.sm,
-    color: colors.primary[300],
-    fontVariant: ['tabular-nums'],
-  },
-  mapTrailText: {
-    fontSize: fontSizes.xs,
-    color: colors.dark.textMuted,
   },
   nextCp: {
     flexDirection: 'row',

@@ -145,7 +145,7 @@ export async function transitionExecution(
   const event: RondaEvent = {
     type: `${currentStatus}_${nextStatus}`,
     timestamp: Date.now(),
-    position: context?.position ?? undefined,
+    position: context?.position ?? null,
     details: { previousState: currentStatus, ...(context?.reason ? { reason: context.reason } : {}) },
   };
 
