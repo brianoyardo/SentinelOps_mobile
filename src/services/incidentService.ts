@@ -14,6 +14,11 @@ interface CreateIncidentInput {
   guardCode: string;
   location: { lat: number; lng: number } | null;
   evidenceUris?: Array<{ uri: string; name: string; mimeType: string }>;
+  rondaId?: string | null;
+  executionId?: string | null;
+  routeId?: string | null;
+  routeName?: string | null;
+  geofenceName?: string | null;
 }
 
 export async function createIncident(input: CreateIncidentInput): Promise<string> {
@@ -35,8 +40,8 @@ export async function createIncident(input: CreateIncidentInput): Promise<string
     reportedBy: input.reportedBy,
     guardName: input.guardName,
     guardCode: input.guardCode,
-    routeName: '',
-    geofenceName: '',
+    routeName: input.routeName ?? '',
+    geofenceName: input.geofenceName ?? '',
     assignedTo: null,
     location: input.location,
     evidenceIds,
@@ -44,8 +49,9 @@ export async function createIncident(input: CreateIncidentInput): Promise<string
     resolvedBy: null,
     resolvedAt: null,
     tags: [],
-    rondaId: null,
-    executionId: null,
+    rondaId: input.rondaId ?? null,
+    executionId: input.executionId ?? null,
+    routeId: input.routeId ?? null,
     createdAt: serverTimestamp() as FieldValue,
     updatedAt: serverTimestamp() as FieldValue,
   });

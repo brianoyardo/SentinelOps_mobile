@@ -1,6 +1,7 @@
 import { Platform } from 'react-native';
 import { getN8nWebhookUrl } from '@/config/n8n';
 import { getRecordingPermissionsAsync, requestRecordingPermissionsAsync } from 'expo-audio';
+import * as FileSystem from 'expo-file-system/legacy';
 
 export async function requestAudioPermission(): Promise<boolean> {
   try {
@@ -21,22 +22,43 @@ export async function sendVoiceReport(
 
   const isWeb = Platform.OS === 'web';
   const filename = `voice_${Date.now()}.${isWeb ? 'webm' : 'm4a'}`;
+  
+  const finalUri = audioUri.startsWith('file://') || isWeb ? audioUri : `file://${audioUri}`;
 
-  const formData = new FormData();
-  formData.append('audio', {
-    uri: audioUri,
-    name: filename,
-    type: isWeb ? 'audio/webm' : 'audio/m4a',
-  } as unknown as Blob);
-  formData.append('metadata', JSON.stringify(metadata));
+  if (isWeb) {
+    const fileResponse = await fetch(finalUri);
+    const audioBlob = await fileResponse.blob();
 
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'multipart/form-data' },
-    body: formData,
-  });
+    const formData = new FormData();
+    formData.append('audio', audioBlob, filename);
+    formData.append('metadata', JSON.stringify(metadata));
 
-  if (!response.ok) throw new Error(`Voice report error: ${response.status}`);
+    const response = await fetch(url, {
+      method: 'POST',
+      body: formData,
+    });
 
-  return response.json();
+    if (!response.ok) throw new Error(`Voice report error: ${response.status}`);
+    return response.json();
+  } else {
+    const uploadTask = await FileSystem.uploadAsync(
+      url,
+      finalUri,
+      {
+        httpMethod: 'POST',
+        uploadType: 1 as any, // 1 === MULTIPART
+        fieldName: 'audio',
+        mimeType: 'audio/m4a',
+        parameters: {
+          metadata: JSON.stringify(metadata),
+        },
+      }
+    );
+
+    if (uploadTask.status !== 200 && uploadTask.status !== 201) {
+      throw new Error(`Voice report error: ${uploadTask.status}`);
+    }
+    
+    return JSON.parse(uploadTask.body);
+  }
 }
