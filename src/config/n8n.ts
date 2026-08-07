@@ -1,9 +1,9 @@
 export const n8nConfig = {
-  baseUrl: 'http://192.168.1.6:5678',
-  env: 'prod',
+  baseUrl: process.env.EXPO_PUBLIC_N8N_BASE_URL || 'http://192.168.1.6:5678',
+  env: process.env.EXPO_PUBLIC_N8N_ENV || 'prod',
   webhooks: {
-    alerta: 'alerta-operativa',
-    cierreRonda: 'cierre-ronda-ia',
+    alerta: process.env.EXPO_PUBLIC_N8N_WEBHOOK_ALERTA || 'alerta-operativa',
+    cierreRonda: process.env.EXPO_PUBLIC_N8N_WEBHOOK_CIERRE_RONDA || 'cierre-ronda-ia',
   },
 } as const;
 
