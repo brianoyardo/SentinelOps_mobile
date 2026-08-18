@@ -30,34 +30,40 @@ export async function verifyVoiceIdentity(
   const finalLiveUri = ensureFileUrl(liveAudioUri);
   const finalEnrolledUri = ensureFileUrl(ENROLLMENT_FILE);
 
-  const formData = new FormData();
-  formData.append('live_audio', {
-    uri: finalLiveUri,
-    name: 'live_audio.m4a',
-    type: 'audio/m4a',
-  } as any);
-  
-  formData.append('enrollment_audio', {
-    uri: finalEnrolledUri,
-    name: 'enrollment_audio.m4a',
-    type: 'audio/m4a',
-  } as any);
+  return new Promise((resolve, reject) => {
+    const formData = new FormData();
+    formData.append('live_audio', {
+      uri: finalLiveUri,
+      name: 'live_audio.m4a',
+      type: 'audio/m4a',
+    } as any);
 
-  try {
-    const response = await fetch(`${VOICE_API_URL}/verify-voice/`, {
-      method: 'POST',
-      body: formData,
-    });
+    formData.append('enrollment_audio', {
+      uri: finalEnrolledUri,
+      name: 'enrollment_audio.m4a',
+      type: 'audio/m4a',
+    } as any);
 
-    if (!response.ok) {
-      throw new Error(`Error en el servidor de IA: ${response.status}`);
-    }
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', `${VOICE_API_URL}/verify-voice/`);
+    
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        try {
+          const data = JSON.parse(xhr.responseText);
+          resolve(data);
+        } catch (e) {
+          reject(new Error('Respuesta inválida del servidor'));
+        }
+      } else {
+        reject(new Error(`Error en el servidor de IA: ${xhr.status}`));
+      }
+    };
 
-    const data = await response.json();
-    return data;
-  } catch (error: any) {
-    throw new Error(error.message || String(error));
-  }
+    xhr.onerror = () => reject(new Error('Error de red al conectar con el servidor de IA'));
+    
+    xhr.send(formData);
+  });
 }
 
 export async function enrollVoiceIdentity(
