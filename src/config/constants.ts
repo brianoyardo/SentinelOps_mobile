@@ -16,7 +16,9 @@ export const COLLECTIONS = {
   DEVICES: 'devices',
   ACTIVITY_LOGS: 'activityLogs',
   GUARD_PRESENCE: 'guardPresence',
+  LIVE_GUARDS: 'guardPresence', // Alineado con Firestore rules match /guardPresence
 } as const;
+
 
 export const SPATIAL_COLLECTIONS = {
   ROUTES: 'routes',

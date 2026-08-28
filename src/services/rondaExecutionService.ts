@@ -266,6 +266,7 @@ export async function recordVoiceValidation(
       position: data.position ?? null,
       details: { matchScore: data.matchScore, passed: data.passed },
     }),
+    ...(data.passed ? { startedAt: serverTimestamp() } : {}),
     updatedAt: serverTimestamp(),
   };
 

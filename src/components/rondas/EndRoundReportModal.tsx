@@ -121,7 +121,7 @@ export function EndRoundReportModal({
       if (onComplete) onComplete();
     } catch (err) {
       console.error('[EndRound] Error al enviar reporte:', err);
-      setErrorMessage('Hubo un problema al enviar el reporte. Reintenta.');
+      setErrorMessage(err instanceof Error ? err.message : 'Hubo un problema al enviar el reporte. Reintenta.');
       setPhase('error');
     }
   }, [audioUri, assignment, executionId, currentPosition, onComplete]);

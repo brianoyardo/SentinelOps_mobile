@@ -1,4 +1,4 @@
-﻿import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import {
   startExecution,
   registerCheckpoint,
@@ -6,6 +6,7 @@ import {
   updateExecutionPosition,
   transitionExecution,
 } from '@/services/rondaExecutionService';
+import { updateLivePosition, appendTrackPoint, clearLivePosition } from '@/services/trackingService';
 import { useRondaTimer } from '@/hooks/useRondaTimer';
 import { useCheckpointValidation } from '@/hooks/useCheckpointValidation';
 import { useGeolocation } from '@/hooks/useGeolocation';
@@ -170,10 +171,11 @@ export function useRondaExecution(options: RondaExecutionOptions) {
       geo.stopTracking();
       await completeExecution(executionId, status, geo.position);
       setStatus(RONDA_STATES.COMPLETED);
+      clearLivePosition(guardId); // Marca guardia como offline en mapa web
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al completar ronda');
     }
-  }, [executionId, status, geo]);
+  }, [executionId, status, geo, guardId]);
 
   const registerCheckpointHit = useCallback(
     async (checkpointId: string) => {
@@ -223,10 +225,11 @@ export function useRondaExecution(options: RondaExecutionOptions) {
       await transitionExecution(executionId, status, RONDA_STATES.PAUSED, { position: geo.position });
       setStatus(RONDA_STATES.PAUSED);
       geo.stopTracking();
+      clearLivePosition(guardId); // Pausa: quitar del mapa web
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al pausar');
     }
-  }, [executionId, status, geo]);
+  }, [executionId, status, geo, guardId]);
 
   const resume = useCallback(async () => {
     if (!executionId) return;
@@ -248,10 +251,11 @@ export function useRondaExecution(options: RondaExecutionOptions) {
       });
       setStatus(RONDA_STATES.CANCELLED);
       geo.stopTracking();
+      clearLivePosition(guardId); // Cancelación: quitar del mapa web
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al cancelar');
     }
-  }, [executionId, status, geo]);
+  }, [executionId, status, geo, guardId]);
 
   useEffect(() => {
     latestGeoRef.current = { position: geo.position, accuracy: geo.accuracy };
@@ -273,7 +277,12 @@ export function useRondaExecution(options: RondaExecutionOptions) {
     syncIntervalRef.current = setInterval(() => {
       const { position, accuracy } = latestGeoRef.current;
       if (position) {
+        // 1. Actualiza el documento de ejecución (status interno)
         updateExecutionPosition(executionId, position, accuracy).catch(() => {});
+        // 2. Escribe en liveGuardPositions → leída por el mapa táctico web
+        updateLivePosition(guardId, guardCode, guardName, position, { accuracy: accuracy ?? undefined });
+        // 3. Agrega punto al trail GPS del execution en Firestore
+        appendTrackPoint(executionId, position, accuracy);
       }
     }, POSITION_SYNC_INTERVAL);
 
@@ -281,7 +290,7 @@ export function useRondaExecution(options: RondaExecutionOptions) {
       if (syncIntervalRef.current) clearInterval(syncIntervalRef.current);
       syncIntervalRef.current = null;
     };
-  }, [status, executionId]);
+  }, [status, executionId, guardId]);
 
   const buildPayload = useCallback(
     (tipoEvento: string, extras: Record<string, unknown> = {}, currentLat: number, currentLng: number) => ({
