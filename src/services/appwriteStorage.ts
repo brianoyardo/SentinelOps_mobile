@@ -18,6 +18,7 @@ export async function uploadEvidence(
 
     const formData = new FormData();
     formData.append('fileId', fileId);
+    formData.append('permissions[]', 'read("any")');
     formData.append('file', blob, fileName);
 
     const uploadRes = await fetch(`${endpoint}/storage/buckets/${EVIDENCE_BUCKET_ID}/files`, {
@@ -40,7 +41,7 @@ export async function uploadEvidence(
         fieldName: 'file',
         mimeType: mimeType || 'image/jpeg',
         headers: { 'X-Appwrite-Project': projectId },
-        parameters: { fileId: fileId },
+        parameters: { fileId: fileId, 'permissions[]': 'read("any")' },
       }
     );
 

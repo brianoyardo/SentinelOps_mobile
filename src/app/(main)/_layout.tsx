@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { Stack, router, usePathname } from 'expo-router';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { db } from '@/config/firebase';
 import { COLLECTIONS } from '@/config/constants';
 import { useAuthStore } from '@/store/useAuthStore';
+import { createPanicIncident } from '@/services/incidentService';
+import * as Location from 'expo-location';
 import { logoutUser } from '@/services/authService';
 import { ensureRequiredPermissions } from '@/services/permissionsService';
 import { PanicModal } from '@/components/ui/PanicModal';
@@ -81,21 +83,44 @@ export default function GuardLayout() {
   const handlePanic = async () => {
     setIsSending(true);
     try {
+      let loc = null;
+      try {
+        const lastLoc = await Location.getLastKnownPositionAsync();
+        if (lastLoc) {
+          loc = { lat: lastLoc.coords.latitude, lng: lastLoc.coords.longitude };
+        } else {
+          const currentLoc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+          loc = { lat: currentLoc.coords.latitude, lng: currentLoc.coords.longitude };
+        }
+      } catch (e) {
+        console.warn('Could not get location for emergency', e);
+      }
+
+      await createPanicIncident({
+        guardId: user?.uid ?? '',
+        guardName: user?.fullName ?? 'Guardia Desconocido',
+        guardCode: user?.guardId ?? 'SIN-CODIGO',
+        location: loc,
+      });
+
       const { sendPanicAlert } = await import('@/services/sosAlertService');
       await sendPanicAlert({
         type: 'panic',
         timestamp: Date.now(),
-        guardId: user?.uid,
-        guardName: user?.fullName,
+        guardId: user?.uid ?? undefined,
+        guardName: user?.fullName ?? undefined,
         guardCode: user?.guardId ?? undefined,
+        location: loc ?? undefined,
+        batteryLevel: 100,
       });
-    } catch {
-      // Modal muestra estado success de todas formas
-    } finally {
+
       setIsSending(false);
+    } catch (err) {
+      console.error('[Layout] Error en botn de emergencia:', err);
+      setIsSending(false);
+      Alert.alert('Error', 'No se pudo enviar la alerta de emergencia.');
     }
   };
-
   return (
     <View style={styles.layout}>
       <View style={styles.header}>

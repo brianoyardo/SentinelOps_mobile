@@ -58,3 +58,44 @@ export async function createIncident(input: CreateIncidentInput): Promise<string
 
   return docRef.id;
 }
+
+export interface CreatePanicIncidentInput {
+  guardId: string;
+  guardName: string;
+  guardCode: string;
+  location: { lat: number; lng: number } | null;
+  rondaId?: string | null;
+  executionId?: string | null;
+  routeId?: string | null;
+  routeName?: string | null;
+  geofenceName?: string | null;
+}
+
+export async function createPanicIncident(input: CreatePanicIncidentInput): Promise<string> {
+  const docRef = await addDoc(collection(db, COLLECTIONS.INCIDENTS), {
+    title: `?? EMERGENCIA- ${input.guardName}`,
+    description: 'Botón de emergencia activado desde la aplicación móvil del guardia.',
+    type: 'security',
+    severity: 'critical',
+    status: 'open',
+    reportedBy: input.guardId,
+    guardName: input.guardName,
+    guardCode: input.guardCode,
+    routeName: input.routeName ?? '',
+    geofenceName: input.geofenceName ?? '',
+    assignedTo: null,
+    location: input.location,
+    evidenceIds: [],
+    resolution: null,
+    resolvedBy: null,
+    resolvedAt: null,
+    tags: ['panic', 'emergency', 'auto-reported'],
+    rondaId: input.rondaId ?? null,
+    executionId: input.executionId ?? null,
+    routeId: input.routeId ?? null,
+    createdAt: serverTimestamp() as FieldValue,
+    updatedAt: serverTimestamp() as FieldValue,
+  });
+
+  return docRef.id;
+}

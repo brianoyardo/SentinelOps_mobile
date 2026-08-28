@@ -33,7 +33,7 @@ export function PanicModal({ visible, isSending, onConfirm, onCancel }: PanicMod
       ) : (
         <>
           <Text style={styles.panicIcon}>⚠</Text>
-          <Text style={styles.title}>¿Activar Alerta de Pánico?</Text>
+          <Text style={styles.title}>¿Activar Alerta de Emergencia?</Text>
           <Text style={styles.message}>
             Se enviará tu ubicación exacta al centro de comando. Esta acción queda registrada para auditoría.
           </Text>
