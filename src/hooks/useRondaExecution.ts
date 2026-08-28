@@ -30,16 +30,19 @@ function haversineDistance(lat1: number, lon1: number, lat2: number, lon2: numbe
 }
 
 function isPointInPolygon(point: GeoPoint, polygon: GeoPoint[]): boolean {
-  if (!polygon || polygon.length === 0) return true;
+  if (!polygon || !Array.isArray(polygon) || polygon.length === 0) return true;
   let isInside = false;
   const x = point.lng;
   const y = point.lat;
 
   for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
-    const xi = polygon[i].lng;
-    const yi = polygon[i].lat;
-    const xj = polygon[j].lng;
-    const yj = polygon[j].lat;
+    if (!polygon[i] || !polygon[j]) continue;
+    // Soporte para Firebase GeoPoints nativos (.latitude, .longitude) o mapeados (.lat, .lng)
+    const xi = polygon[i].lng ?? (polygon[i] as any).longitude;
+    const yi = polygon[i].lat ?? (polygon[i] as any).latitude;
+    const xj = polygon[j].lng ?? (polygon[j] as any).longitude;
+    const yj = polygon[j].lat ?? (polygon[j] as any).latitude;
+    if (xi === undefined || yi === undefined || xj === undefined || yj === undefined) continue;
 
     const intersect = yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi;
     if (intersect) isInside = !isInside;
@@ -271,7 +274,22 @@ export function useRondaExecution(options: RondaExecutionOptions) {
   useEffect(() => {
     if (status !== RONDA_STATES.IN_PROGRESS || !executionId) return;
 
+    // --- INTERVALO DE SINCRONIZACI�N Y CHEQUEO DE INACTIVIDAD ---
     syncIntervalRef.current = setInterval(() => {
+      // Chequeo de inactividad (Hombre Ca�do) forzado por tiempo
+      const timeElapsed = Date.now() - (lastMoveTimeRef.current ?? Date.now());
+      if (timeElapsed > INACTIVITY_THRESHOLD_MS && !inactivityAlertFiredRef.current) {
+        inactivityAlertFiredRef.current = true;
+        fireWebhook(
+          buildPayload(
+            'Inactividad Prolongada',
+            { tiempoInactivoSegundos: Math.floor(timeElapsed / 1000) },
+            latestGeoRef.current?.position?.lat ?? 0,
+            latestGeoRef.current?.position?.lng ?? 0,
+          ),
+        );
+      }
+
       const { position, accuracy } = latestGeoRef.current;
       if (position) {
         // 1. Actualiza el documento de ejecución (status interno)
@@ -320,7 +338,13 @@ export function useRondaExecution(options: RondaExecutionOptions) {
     const currentLng = geo.position.lng;
 
     if (geofencePolygon && geofencePolygon.length > 0) {
-      const isInside = isPointInPolygon(geo.position, geofencePolygon);
+      let isInside = true;
+      try {
+        isInside = isPointInPolygon(geo.position, geofencePolygon);
+
+      } catch (err) {
+        console.error('[Alertas] Error en isPointInPolygon:', err);
+      }
       if (!isInside && !isOutdoorsRef.current) {
         isOutdoorsRef.current = true;
         fireWebhook(buildPayload('Abandono de Geocerca', {}, currentLat, currentLng));
@@ -385,6 +409,7 @@ export function useRondaExecution(options: RondaExecutionOptions) {
     finishRonda,
     cancel,
     registerCheckpointHit,
+    isOutdoors: isOutdoorsRef.current,
   };
 }
 

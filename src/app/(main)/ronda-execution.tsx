@@ -180,6 +180,7 @@ export default function RondaExecutionScreen() {
     executionId: phase === 'execution' ? executionId : null,
     initialCompletedIds,
     initialTrail,
+    geofencePolygon,
   });
 
   // ─── Pre-Op Modal Confirm ───
@@ -370,6 +371,9 @@ export default function RondaExecutionScreen() {
             </TouchableOpacity>
           )}
           <Text style={styles.progressText}>{exec.progress.percentage}%</Text>
+          <Text style={{color: geofencePolygon && geofencePolygon.length > 0 ? '#4ade80' : '#f87171', fontSize: 10, marginLeft: 4}}>
+            {geofencePolygon ? `G:${geofencePolygon.length} | ${!exec.isOutdoors ? 'DENTRO' : 'FUERA'}` : 'G:NO'}
+          </Text>
           <View style={styles.gpsBox}>
             <View style={[styles.gpsDot, gpsStatus === 'ok' && styles.gpsOk, gpsStatus === 'warn' && styles.gpsWarn, gpsStatus === 'bad' && styles.gpsBad]} />
             <Text style={styles.gpsText}>
