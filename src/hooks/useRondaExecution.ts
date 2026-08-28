@@ -16,7 +16,7 @@ import { getN8nWebhookUrl } from '@/config/n8n';
 import type { GeoPoint } from '@/types';
 
 const MOVEMENT_THRESHOLD_M = 15;
-const INACTIVITY_THRESHOLD_MS = 30_000;
+const INACTIVITY_THRESHOLD_MS = 15_000;
 
 function haversineDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const R = 6371000;

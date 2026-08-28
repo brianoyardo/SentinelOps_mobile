@@ -13,7 +13,7 @@ import { useAuthStore } from '@/store/useAuthStore';
 import { useRondaExecution } from '@/hooks/useRondaExecution';
 import { startExecution, getExecution, findActiveExecutionByAssignment, abortVoiceSession } from '@/services/rondaExecutionService';
 import { getAssignment } from '@/services/rondaAssignmentService';
-import { getRoute, getCheckpointsByRoute } from '@/services/spatialService';
+import { getRoute, getCheckpointsByRoute, getGeofenceByRoute } from '@/services/spatialService';
 import { STATE_LABELS, STATE_COLORS, RONDA_STATES } from '@/utils/rondaStateMachine';
 import { VOICE_PASSPHRASES } from '@/config/constants';
 import { PreOpModal } from '@/components/rondas/PreOpModal';
@@ -62,6 +62,7 @@ export default function RondaExecutionScreen() {
   const [loading, setLoading] = useState(true);
   const [assignment, setAssignment] = useState<RondaAssignment | null>(null);
   const [route, setRoute] = useState<{ name?: string } | null>(null);
+  const [geofencePolygon, setGeofencePolygon] = useState<import('@/types').GeoPoint[] | null>(null);
   const [checkpoints, setCheckpoints] = useState<FlatCheckpoint[]>([]);
   const [initialCompletedIds, setInitialCompletedIds] = useState<string[]>([]);
   const [initialTrail, setInitialTrail] = useState<Array<{ lat: number; lng: number }>>([]);
@@ -88,12 +89,18 @@ export default function RondaExecutionScreen() {
         setAssignment(assign);
 
         if (assign.routeId) {
-          const [r, cps] = await Promise.all([
+          const [r, cps, gf] = await Promise.all([
             getRoute(assign.routeId),
             getCheckpointsByRoute(assign.routeId),
+            getGeofenceByRoute(assign.routeId),
           ]);
           if (r) setRoute(r);
-          setCheckpoints(cps.map(checkpointToFlat).filter((cp): cp is FlatCheckpoint => cp !== null));
+          setCheckpoints(cps.map(checkpointToFlat).filter((cp: any): cp is FlatCheckpoint => cp !== null));
+          if (gf && gf.geometry && (gf.geometry as any).coordinatesFirestore) {
+            setGeofencePolygon((gf.geometry as any).coordinatesFirestore);
+          } else if (gf && gf.geometry && gf.geometry.coordinates && Array.isArray(gf.geometry.coordinates[0])) {
+            setGeofencePolygon(gf.geometry.coordinates[0].map((c: any) => ({ lng: c[0], lat: c[1] })));
+          }
         }
 
         // ─── BLINDAJE DE RESTAURACIÓN DE SESIÓN ───

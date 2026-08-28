@@ -54,3 +54,16 @@ export async function getGeofences(): Promise<Geofence[]> {
     return { id: d.id, ...data, geometry: deserializeGeometry(data.geometry) } as Geofence;
   });
 }
+export async function getGeofenceByRoute(routeId: string): Promise<Geofence | null> {
+  // 1. Intentar query directo
+  const q = query(collection(db, COLLECTIONS.GEOFENCES), where('routeId', '==', routeId));
+  const snapshot = await getDocs(q);
+  if (!snapshot.empty) {
+    const d = snapshot.docs[0];
+    return { id: d.id, ...d.data(), geometry: deserializeGeometry(d.data().geometry) } as Geofence;
+  }
+  // 2. Fallback: buscar en memoria (a veces routeId es referencial o fallan indices)
+  const all = await getGeofences();
+  const found = all.find(g => g.routeId === routeId);
+  return found || null;
+}
