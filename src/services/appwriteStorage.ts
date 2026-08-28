@@ -51,6 +51,6 @@ export async function uploadEvidence(
   }
 
   // Obtenemos la URL de visualización usando el SDK
-  const fileUrl = storage.getFileView(EVIDENCE_BUCKET_ID, fileId);
-  return fileUrl.toString();
+  // Devolvemos el fileId
+  return fileId;
 }
