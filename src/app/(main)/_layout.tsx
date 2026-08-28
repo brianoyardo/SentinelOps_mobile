@@ -10,6 +10,7 @@ import { ensureRequiredPermissions } from '@/services/permissionsService';
 import { PanicModal } from '@/components/ui/PanicModal';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { colors, spacing, radii, fontSizes } from '@/constants/colors';
+import { useGlobalPresence } from '@/hooks/useGlobalPresence';
 
 type PresenceStatus = 'online' | 'in_progress' | 'validating_voice';
 
@@ -33,6 +34,8 @@ export default function GuardLayout() {
   const [showMenu, setShowMenu] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [presenceStatus, setPresenceStatus] = useState<PresenceStatus>('online');
+
+  const { clearPresence } = useGlobalPresence(presenceStatus);
 
   useEffect(() => {
     if (!user?.uid) return;
@@ -70,6 +73,7 @@ export default function GuardLayout() {
   }, []);
 
   const handleLogout = async () => {
+    await clearPresence();
     await logoutUser();
     router.replace('/(auth)/login');
   };
