@@ -1,6 +1,7 @@
 import { useMemo, useRef, useEffect, useCallback } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { WebView, type WebViewMessageEvent } from 'react-native-webview';
+import { MAP_CONFIG } from '@/config/constants';
 
 interface GuardMapProps {
   position: { lat: number; lng: number } | null;
@@ -9,6 +10,7 @@ interface GuardMapProps {
   completedIds?: string[];
   activeCpId?: string | null;
   trail?: Array<{ lat: number; lng: number }>;
+  tileUrl?: string;
 }
 
 export interface GuardCheckpoint {
@@ -27,11 +29,11 @@ interface MapState {
   trail: Array<{ lat: number; lng: number }>;
 }
 
-const DEFAULT_LAT = -16.5;
-const DEFAULT_LNG = -68.15;
-const DEFAULT_ZOOM = 16;
+const DEFAULT_LAT = MAP_CONFIG.DEFAULT_LAT;
+const DEFAULT_LNG = MAP_CONFIG.DEFAULT_LNG;
+const DEFAULT_ZOOM = MAP_CONFIG.DEFAULT_ZOOM;
 
-function buildGuardHtml(initialJson: string): string {
+function buildGuardHtml(initialJson: string, tileUrl: string = MAP_CONFIG.CARTO_VOYAGER_URL): string {
   return `<!DOCTYPE html>
 <html>
 <head>
@@ -151,7 +153,15 @@ function init() {
   if (INITIAL_STATE.position) center = [INITIAL_STATE.position.lat, INITIAL_STATE.position.lng];
   var startZoom = INITIAL_STATE.position ? 18 : ${DEFAULT_ZOOM};
   map = L.map('map', { zoomControl: false, scrollWheelZoom: false, attributionControl: true }).setView(center, startZoom);
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { attribution: '&copy; <a href="https://carto.com/">CARTO</a> &amp; <a href="https://www.openstreetmap.org/">OSM</a>', maxZoom: 20, subdomains: 'abcd' }).addTo(map);
+  var tileUrl = ${JSON.stringify(tileUrl)};
+  var tileOptions = {
+    attribution: '&copy; <a href="https://carto.com/">CARTO</a> &amp; <a href="https://www.openstreetmap.org/">OSM</a>',
+    maxZoom: 20
+  };
+  if (tileUrl.indexOf('{s}') !== -1) {
+    tileOptions.subdomains = 'abcd';
+  }
+  L.tileLayer(tileUrl, tileOptions).addTo(map);
   renderState(INITIAL_STATE);
   pending.forEach(renderState);
   pending = [];
@@ -170,6 +180,7 @@ export function GuardMap({
   completedIds = [],
   activeCpId = null,
   trail = [],
+  tileUrl = MAP_CONFIG.CARTO_VOYAGER_URL,
 }: GuardMapProps) {
   const webRef = useRef<WebView>(null);
   const latestRef = useRef<MapState | null>(null);
@@ -187,7 +198,7 @@ export function GuardMap({
 
   latestRef.current = mapState;
 
-  const html = useMemo(() => buildGuardHtml(JSON.stringify(mapState)), []);
+  const html = useMemo(() => buildGuardHtml(JSON.stringify(mapState), tileUrl), [tileUrl]);
 
   const inject = useCallback((state: MapState) => {
     try {
